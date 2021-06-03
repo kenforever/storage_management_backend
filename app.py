@@ -7,16 +7,24 @@ from flask_jwt_extended.view_decorators import jwt_required
 from flask_jwt_extended import JWTManager
 from datetime import datetime, timedelta
 from flask_cors import CORS
+import os
 from flask_cors import cross_origin
 from record import add_record
+
+data = json.load(open("./config.json"))
+print(data)
+secret_key = data['Secret_key']
+access_token_expires = data['access_token_expires']
+refresh_token_expires = data['refresh_token_expires']
 
 app = flask.Flask(__name__)
 CORS(app, cors_allowed_origins='*')
 jwt = JWTManager()
-app.config["JWT_SECRET_KEY"] = 'abced'
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
+app.config["JWT_SECRET_KEY"] = secret_key
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=access_token_expires)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(hours=refresh_token_expires)
 jwt.init_app(app)
+
 
 @app.route('/', methods=['GET'])
 def home():
@@ -81,7 +89,12 @@ def init():
     #  operator     text    operator, adder of the object, should be their username 
     #  object_type  text    object type, type of object
     #  lend         int     lend, 0 mean have not been borrow, 1 mean already have been borrowed
-    c.execute('''CREATE TABLE warehouse(nickname text, object_name text, add_date text, operator text, object_type text, lend INTEGER)''')
+    try:
+        c.execute('''CREATE TABLE warehouse(nickname text, object_name text, add_date text, operator text, object_type text, lend INTEGER)''')
+    except Exception as e:
+        database_connect.commit()
+        database_connect.close()
+        return e
     database_connect.commit()
     database_connect.close()
     return jsonify({"msg": "finish"}), 200
